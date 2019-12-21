@@ -7,17 +7,17 @@ from soft_thresh import soft_thresh
 from time import time
 
 
-def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter):
+def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
     if isinstance(lamb, tuple):
         lamb_x, lamb_y, lamb_z = lamb
     else:
         lamb_x, lamb_y, lamb_z = lamb, lamb, lamb
 
-    sz = y.shape
+    shape = y.shape
     if y.ndim == 2:
-        D = get_Delta_grid(sz, 'gtf2d', 0)
+        D = get_Delta_grid(shape, 'gtf2d', 0)
     elif y.ndim == 3:
-        D = get_Delta_grid(sz, 'gtf3d', 0)
+        D = get_Delta_grid(shape, 'gtf3d', 0)
         # print(D.shape)
     else:
         raise AssertionError('Grids with dimension  > 3 not supported')
@@ -27,12 +27,8 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter):
         x = ptv.tvgen(y, [lamb_x, lamb_y, lamb_z], [1, 2, 3], [1, 1, 1])
         return x, 0
 
-    history = list()
-
-    n = y.size
-
     L = D.T @ D
-    Lk = np.eye(n)
+    Lk = np.eye(y.size)
     for i in range(k // 2):
         Lk = L @ Lk
 
@@ -40,23 +36,21 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter):
     tol_rel = 1e-4
 
     conv = False
-    y = y.reshape(y.size, 1)
-    x = y
-    m = n
-    z = np.zeros((n, 1))
-    u = z
+    x = y = y.flatten()
+    u = z = np.zeros_like(y)
+
     iter = 1
     while not conv:
-        if len(sz) == 2:
-            x = grid_system_2d((Lk @ (rho * z - u) + y).reshape(sz), np.ceil(k / 2) * 2, rho)
-        elif len(sz) == 3:
-            x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(sz), np.ceil(k / 2) * 2, rho)
+        if len(shape) == 2:
+            x = grid_system_2d((Lk @ (rho * z - u) + y).reshape(shape), np.ceil(k / 2) * 2, rho)
+        elif len(shape) == 3:
+            x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(shape), np.ceil(k / 2) * 2, rho)
 
-        x = x.reshape(x.size, 1)
+        x = x.flatten()
         Lkx = Lk @ x
 
         if k % 2 == 0:
-            nLkx = np.reshape((Lkx + u / rho), sz)
+            nLkx = np.reshape((Lkx + u / rho), shape)
             start = time()
             z_new = ptv.tvgen(nLkx, [lamb_x, lamb_y, lamb_z], [1, 2, 3], [1, 1, 1])
             stop = time()
@@ -73,12 +67,12 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter):
         u += rho * (Lkx - z)
         r = norm(Lkx - z)
 
-        eps_pri = np.sqrt(n) * tol_abs + tol_rel * max(norm(Lkx), norm(z))
-        eps_dual = np.sqrt(m) * tol_abs + tol_rel * norm(Lk.T @ u)
+        eps_pri = np.sqrt(y.size) * tol_abs + tol_rel * max(norm(Lkx), norm(z))
+        eps_dual = np.sqrt(y.size) * tol_abs + tol_rel * norm(Lk.T @ u)
 
         if iter % 1 == 0:
             pass
-            # print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(iter, r, s, eps_pri, eps_dual))
+            print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(iter, r, s, eps_pri, eps_dual))
         if r < eps_pri and s < eps_dual:
             conv = True
             # print('converged.')
