@@ -36,31 +36,26 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
     tol_abs = 1e-5
     tol_rel = 1e-4
 
-    y = y.reshape((y_size, 1))
+    y = y.reshape((y_size, 1), order='F')
     x = y.copy()
     z = np.zeros_like(y, dtype=np.float64)
     u = z.copy()
 
     for i in range(max_iter):
         if y_dim == 2:
-            b = Lk @ (rho * z - u) + y
-            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
-            b = np.transpose(b, (2, 1, 0))
+            b = (Lk @ (rho * z - u) + y).reshape(y_shape, order='F')
             x = grid_system_2d(b.reshape(y_shape), np.ceil(k / 2) * 2, rho)
         elif y_dim == 3:
-            b = Lk @ (rho * z - u) + y
-            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
-            b = np.transpose(b, (2, 1, 0))
+            b = (Lk @ (rho * z - u) + y).reshape(y_shape, order='F')
             x = grid_system_3d(b.reshape(y_shape), np.ceil(k / 2) * 2, rho)
 
-        x = np.transpose(x, (2, 1, 0))
-        x = x.reshape((y_size, 1))
+        x = x.reshape((y_size, 1), order='F')
         Lkx = Lk @ x
 
         if k % 2 == 0:
-            nLkx = np.reshape((Lkx + u / rho), y_shape)
+            nLkx = np.reshape((Lkx + u / rho), y_shape, order='F')
             z_new = ptv.tvgen(nLkx, [lamb_x, lamb_y, lamb_z], [1, 2, 3], [1, 1, 1])
-            z_new = z_new.reshape((y_size, 1))
+            z_new = z_new.reshape((y_size, 1), order='F')
         else:
             z_new = soft_thresh(Lkx + u / rho, lamb / rho)
 
@@ -87,4 +82,4 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
             break
     else:  # no break
         print('Reached maxiter.')
-    return x.reshape(y_shape)
+    return x.reshape(y_shape, order='F')

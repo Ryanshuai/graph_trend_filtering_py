@@ -26,32 +26,24 @@ def gtf_admm_grid_v1(y: np.array, k, lamb, rho, max_iter=1000):
     tol_abs = 1e-5
     tol_rel = 1e-4
 
-    y = np.transpose(y, (2, 1, 0))
-    y = y.reshape((y_size, 1))
+    y = y.reshape((y_size, 1), order='F')
     x = y.copy()
     z = np.zeros_like(y, dtype=np.float64)
     u = z.copy()
 
     for i in range(max_iter):
         if y_dim == 2:
-            b = O.T @ (rho * z - u) + y
-            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
-            b = np.transpose(b, (2, 1, 0))
+            b = (O.T @ (rho * z - u) + y).reshape(y_shape, order='F')
             x = grid_system_2d(b, k + 1, rho)
         elif y_dim == 3:
-            b = O.T @ (rho * z - u) + y
-            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
-            b = np.transpose(b, (2, 1, 0))
+            b = (O.T @ (rho * z - u) + y).reshape(y_shape, order='F')
             x = grid_system_3d(b, k + 1, rho)
 
-        x = np.transpose(x, (2, 1, 0))
-        x = x.reshape((y_size, 1))
+        x = x.reshape((y_size, 1), order='F')
         Ox = O @ x
         z_new = soft_thresh(Ox + u / rho, lamb / rho)
         s = rho * norm(O.T @ (z_new - z))
         z = z_new
-
-        print(np.max(z))
 
         u += rho * (Ox - z)
         r = norm(Ox - z)
@@ -73,4 +65,4 @@ def gtf_admm_grid_v1(y: np.array, k, lamb, rho, max_iter=1000):
             break
     else:  # no break
         print('Reached maxiter.')
-    return x.reshape(y_shape)
+    return x.reshape(y_shape, order='F')
