@@ -36,8 +36,10 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
     tol_abs = 1e-5
     tol_rel = 1e-4
 
-    x = y = y.reshape((y_size, 1))
-    u = z = np.zeros_like(y)
+    y = y.reshape((y_size, 1))
+    x = y.copy()
+    z = np.zeros_like(y, dtype=np.float64)
+    u = z.copy()
 
     for i in range(max_iter):
         if y_dim == 2:
@@ -45,6 +47,7 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
         elif y_dim == 3:
             x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(y_shape), np.ceil(k / 2) * 2, rho)
 
+        x = np.transpose(x, (2, 1, 0))
         x = x.reshape((y_size, 1))
         Lkx = Lk @ x
 
