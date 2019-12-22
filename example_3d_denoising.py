@@ -26,9 +26,9 @@ lamb = 0.05
 rho = lamb
 k = 2
 
-# x1 = gtf_admm_grid(im_3d_noisy.copy(), k, lamb, rho)
-# x1 = np.clip(x1, 0, 1.)
-# x1 = (x1*255).astype(np.uint8)
-# cv2.imwrite('x1_1_3.png', x1[:, :, 0:3])
+x1 = gtf_admm_grid(im_3d_noisy.copy(), k, lamb, rho)
+x1 = np.clip(x1, 0, 1.)
+x1 = (x1*255).astype(np.uint8)
+cv2.imwrite('x1_1_3.png', x1[:, :, 0:3])
 
-x2 = gtf_admm_grid_v1(im_3d_noisy.copy(), k, lamb, rho)
+# x2 = gtf_admm_grid_v1(im_3d_noisy.copy(), k, lamb, rho)

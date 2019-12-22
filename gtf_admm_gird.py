@@ -43,9 +43,15 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
 
     for i in range(max_iter):
         if y_dim == 2:
-            x = grid_system_2d((Lk @ (rho * z - u) + y).reshape(y_shape), np.ceil(k / 2) * 2, rho)
+            b = Lk @ (rho * z - u) + y
+            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
+            b = np.transpose(b, (2, 1, 0))
+            x = grid_system_2d(b.reshape(y_shape), np.ceil(k / 2) * 2, rho)
         elif y_dim == 3:
-            x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(y_shape), np.ceil(k / 2) * 2, rho)
+            b = Lk @ (rho * z - u) + y
+            b = b.reshape((y_shape[2], y_shape[1], y_shape[0]))
+            b = np.transpose(b, (2, 1, 0))
+            x = grid_system_3d(b.reshape(y_shape), np.ceil(k / 2) * 2, rho)
 
         x = np.transpose(x, (2, 1, 0))
         x = x.reshape((y_size, 1))
@@ -67,7 +73,7 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
         eps_pri = np.sqrt(y.size) * tol_abs + tol_rel * max(norm(Lkx), norm(z))
         eps_dual = np.sqrt(y.size) * tol_abs + tol_rel * norm(Lk.T @ u)
 
-        if i % 50 == 0:
+        if i % 1 == 0:
             print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(i, r, s, eps_pri, eps_dual))
 
         # tau = 2
