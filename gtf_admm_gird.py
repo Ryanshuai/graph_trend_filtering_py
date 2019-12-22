@@ -1,10 +1,10 @@
 import numpy as np
+from numpy.linalg import norm
 import prox_tv as ptv
 
 from grid_system import grid_system_2d, grid_system_3d
 from get_Delta_grid import get_Delta_grid
 from soft_thresh import soft_thresh
-from time import time
 
 
 def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
@@ -13,12 +13,13 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
     else:
         lamb_x, lamb_y, lamb_z = lamb, lamb, lamb
 
-    shape = y.shape
-    if y.ndim == 2:
-        D = get_Delta_grid(shape, 'gtf2d', 0)
-    elif y.ndim == 3:
-        D = get_Delta_grid(shape, 'gtf3d', 0)
-        # print(D.shape)
+    y_size = y.size
+    y_shape = y.shape
+    y_dim = y.ndim
+    if y_dim == 2:
+        D = get_Delta_grid(y_shape, 'gtf2d', 0)
+    elif y_dim == 3:
+        D = get_Delta_grid(y_shape, 'gtf3d', 0)
     else:
         raise AssertionError('Grids with dimension  > 3 not supported')
 
@@ -35,32 +36,25 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
     tol_abs = 1e-5
     tol_rel = 1e-4
 
-    conv = False
-    x = y = y.flatten()
+    x = y = y.reshape((y_size, 1))
     u = z = np.zeros_like(y)
 
-    iter = 1
-    while not conv:
-        if len(shape) == 2:
-            x = grid_system_2d((Lk @ (rho * z - u) + y).reshape(shape), np.ceil(k / 2) * 2, rho)
-        elif len(shape) == 3:
-            x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(shape), np.ceil(k / 2) * 2, rho)
+    for i in range(max_iter):
+        if y_dim == 2:
+            x = grid_system_2d((Lk @ (rho * z - u) + y).reshape(y_shape), np.ceil(k / 2) * 2, rho)
+        elif y_dim == 3:
+            x = grid_system_3d((Lk @ (rho * z - u) + y).reshape(y_shape), np.ceil(k / 2) * 2, rho)
 
-        x = x.flatten()
+        x = x.reshape((y_size, 1))
         Lkx = Lk @ x
 
         if k % 2 == 0:
-            nLkx = np.reshape((Lkx + u / rho), shape)
-            start = time()
+            nLkx = np.reshape((Lkx + u / rho), y_shape)
             z_new = ptv.tvgen(nLkx, [lamb_x, lamb_y, lamb_z], [1, 2, 3], [1, 1, 1])
-            stop = time()
-            # print('porx_TV need: ', stop - start)
-            z_new = z_new.reshape(z_new.size, 1)
-            # z_new = graphtv(Lkx + u / rho, edges1, edges2, lamb / rho)
+            z_new = z_new.reshape((y_size, 1))
         else:
             z_new = soft_thresh(Lkx + u / rho, lamb / rho)
 
-        norm = np.linalg.norm
         s = rho * norm(Lk * (z_new - z))
         z = z_new
 
@@ -70,23 +64,18 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
         eps_pri = np.sqrt(y.size) * tol_abs + tol_rel * max(norm(Lkx), norm(z))
         eps_dual = np.sqrt(y.size) * tol_abs + tol_rel * norm(Lk.T @ u)
 
-        if iter % 1 == 0:
-            pass
-            print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(iter, r, s, eps_pri, eps_dual))
+        if i % 50 == 0:
+            print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(i, r, s, eps_pri, eps_dual))
+
+        # tau = 2
+        # if r > 10 * s:
+        #     rho *= tau
+        # elif s > 10 * s:
+        #     rho /= tau
+
         if r < eps_pri and s < eps_dual:
-            conv = True
-            # print('converged.')
-        elif iter >= max_iter:
-            conv = True
-            # print('Reached maxiter.')
-        # history = history.append([s, r])
-
-        tau = 2
-        if r > 10 * s:
-            rho *= tau
-        elif s > 10 * s:
-            rho /= tau
-
-        iter += 1
-
-    return x
+            print('converged.')
+            break
+    else:  # no break
+        print('Reached maxiter.')
+    return x.reshape(y_shape)

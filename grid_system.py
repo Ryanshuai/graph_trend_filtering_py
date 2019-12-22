@@ -8,26 +8,25 @@ def grid_system_2d(b: np.ndarray, k, rho):
 
 
 def grid_system_3d(b: np.ndarray, k, rho):
-    n3, n2, n1 = b.shape
+    h, w, d = b.shape
 
-    lambs1 = 4 * np.power(np.sin(np.pi * (np.arange(0, n1)) / (2 * n1)), 2)
-    lambs2 = 4 * np.power(np.sin(np.pi * (np.arange(0, n2)) / (2 * n2)), 2)
-    lambs3 = 4 * np.power(np.sin(np.pi * (np.arange(0, n3)) / (2 * n3)), 2)
+    lambs_d = 4 * np.power(np.sin(np.pi * (np.arange(0, d)) / (2 * d)), 2)
+    lambs_w = 4 * np.power(np.sin(np.pi * (np.arange(0, w)) / (2 * w)), 2)
+    lambs_h = 4 * np.power(np.sin(np.pi * (np.arange(0, h)) / (2 * h)), 2)
 
-    lambs = kron(kron(ones((1, n3)), ones((1, n2))), lambs1) + \
-            kron(kron(ones((1, n3)), lambs2), ones((1, n1))) + \
-            kron(kron(lambs3, ones((1, n2))), ones((1, n1)))
+    lambs = kron(kron(ones((1, h)), ones((1, w))), lambs_d) + \
+            kron(kron(ones((1, h)), lambs_w), ones((1, d))) + \
+            kron(kron(lambs_h, ones((1, w))), ones((1, d)))
 
-    lambs = lambs.reshape((n3, n2, n1))
+    lambs = lambs.reshape((h, w, d))
 
-    sigma = rho * np.power(lambs, k) + ones((n3, n2, n1))
+    sigma = rho * np.power(lambs, k) + ones((h, w, d))
 
     tmp = dct(b, axis=-1, norm='ortho')
     tmp = dct(tmp, axis=-2, norm='ortho')
     tmp = dct(tmp, axis=-3, norm='ortho')
-    tmp *= 1. / sigma
-    # print(tmp)
-    x = idct(tmp, axis=-3, norm='ortho')
+    x = tmp / sigma
+    x = idct(x, axis=-3, norm='ortho')
     x = idct(x, axis=-2, norm='ortho')
     x = idct(x, axis=-1, norm='ortho')
 

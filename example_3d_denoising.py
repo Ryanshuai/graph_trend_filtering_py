@@ -3,7 +3,7 @@ import numpy as np
 from gtf_admm_gird import gtf_admm_grid
 
 im = cv2.imread('Lena.png')
-im = cv2.resize(im, (52, 52))
+im = cv2.resize(im, (20, 20))
 im = im.astype(np.float64) / 255
 
 depth = 10
@@ -21,6 +21,9 @@ rho = lamb
 k = 2
 
 x1 = gtf_admm_grid(im_3d_noisy.copy(), k, lamb, rho)
+x1 = np.clip(x1, 0, 1.)
+x1 = (x1*255).astype(np.uint8)
+cv2.imwrite('x1_1_3.png', x1[:, :, 0:3])
 
 # x2 = gtf_admm_grid_v1(im_3d_noisy.copy(), k, lamb, rho)
 
