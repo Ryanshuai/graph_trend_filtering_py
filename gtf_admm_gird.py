@@ -71,11 +71,11 @@ def gtf_admm_grid(y: np.array, k, lamb, rho, max_iter=1000):
         if i % 1 == 0:
             print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(i, r, s, eps_pri, eps_dual))
 
-        # tau = 2
-        # if r > 10 * s:
-        #     rho *= tau
-        # elif s > 10 * s:
-        #     rho /= tau
+        tau = 2
+        if r > 10 * s:
+            rho *= tau
+        elif s > 10 * s:
+            rho /= tau
 
         if r < eps_pri and s < eps_dual:
             print('converged.')
