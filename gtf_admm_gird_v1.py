@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.linalg import norm
-import prox_tv as ptv
 
 from grid_system import grid_system_2d, grid_system_3d
 from get_Delta_grid import get_Delta_grid
@@ -22,9 +21,6 @@ def gtf_admm_grid_v1(y: np.array, k, lamb, rho, max_iter=1000):
     O = construct_O(D, k)
     if k % 2 == 0:
         O = O[:O.shape[1], :]
-
-    tol_abs = 1e-5
-    tol_rel = 1e-4
 
     y = y.reshape((y_size, 1), order='F')
     x = y.copy()
@@ -48,8 +44,14 @@ def gtf_admm_grid_v1(y: np.array, k, lamb, rho, max_iter=1000):
         u += rho * (Ox - z)
         r = norm(Ox - z)
 
+        tol_abs = 1e-5
+        tol_rel = 1e-4
         eps_pri = np.sqrt(y.size) * tol_abs + tol_rel * max(norm(Ox), norm(z))
         eps_dual = np.sqrt(y.size) * tol_abs + tol_rel * norm(O.T @ u)
+
+        if r < eps_pri and s < eps_dual:
+            print('converged.')
+            break
 
         if i % 1 == 0:
             print('{} [r, s]={}, {}, [eps_pri, eps_dual]={},{}'.format(i, r, s, eps_pri, eps_dual))
@@ -60,9 +62,6 @@ def gtf_admm_grid_v1(y: np.array, k, lamb, rho, max_iter=1000):
         elif s > 10 * s:
             rho /= tau
 
-        if r < eps_pri and s < eps_dual:
-            print('converged.')
-            break
     else:  # no break
         print('Reached maxiter.')
     return x.reshape(y_shape, order='F')
